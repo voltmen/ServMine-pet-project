@@ -1,0 +1,48 @@
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: db_pet
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POST_PASSWORD}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend_pet   
+      dockerfile: Dockerfile
+    container_name: backend_pet
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: frontend_pet
+    ports:
+      - "3000:3000"
+    stdin_open: true          
+    tty: true
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

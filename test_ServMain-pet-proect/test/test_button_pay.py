@@ -23,8 +23,10 @@ def capture_element_screenshot(page, selector):
             caret-color: transparent !important;
         }
     """)
+    page.wait_for_timeout(200)
 
     try:
+        page.wait_for_selector("iframe[src*='liqpay.ua']", timeout=15000)
         iframe_element = page.frame_locator("iframe[src*='liqpay.ua']").locator(selector).first
         iframe_element.wait_for(state="visible", timeout=20000)
         return iframe_element.screenshot()
@@ -36,7 +38,12 @@ def capture_element_screenshot(page, selector):
 
 @pytest.mark.parametrize("banner_method, snapshot_name", BUTTON_CASES)
 def test_button_pay(login_in_page, snapshot, banner_method, snapshot_name):
-    """Click a payment banner and verify the payment info snapshot."""
+    """Click a payment banner and verify the payment info snapshot.
+
+    Parametrized over BUTTON_CASES; ids ("vip"/"admin"/"console")
+    come from pytest.param(..., id=...) and show up in the test name
+    and Allure report.
+    """
     button_pay_page = AllButtonPayPage(login_in_page)
 
     with allure.step(f"Click {banner_method} and check payment element snapshot"):

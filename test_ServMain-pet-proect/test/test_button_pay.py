@@ -23,27 +23,34 @@ def capture_element_screenshot(page, selector):
             caret-color: transparent !important;
         }
     """)
-    page.wait_for_timeout(200)
+    page.wait_for_timeout(500)
 
-    try:
-        page.wait_for_selector("iframe[src*='liqpay.ua']", timeout=15000)
-        iframe_element = page.frame_locator("iframe[src*='liqpay.ua']").locator(selector).first
-        iframe_element.wait_for(state="visible", timeout=20000)
-        return iframe_element.screenshot()
-    except Exception:
-        element = page.locator(selector).first
-        element.wait_for(state="visible", timeout=30000)
-        return element.screenshot()
+    # Чекаємо появи елемента в основному DOM або всередині iframe LiqPay
+    for _ in range(30):
+        try:
+            # Шукаємо в iframe
+            if page.locator("iframe[src*='liqpay.ua']").count() > 0:
+                frame_el = page.frame_locator("iframe[src*='liqpay.ua']").locator(selector).first
+                if frame_el.is_visible():
+                    return frame_el.screenshot()
+            
+            # Шукаємо в основному DOM
+            dom_el = page.locator(selector).first
+            if dom_el.is_visible():
+                return dom_el.screenshot()
+        except Exception:
+            pass
+        page.wait_for_timeout(1000)
+
+    # Фінальна спроба з явним очікуванням
+    element = page.locator(selector).first
+    element.wait_for(state="visible", timeout=10000)
+    return element.screenshot()
 
 
 @pytest.mark.parametrize("banner_method, snapshot_name", BUTTON_CASES)
 def test_button_pay(login_in_page, snapshot, banner_method, snapshot_name):
-    """Click a payment banner and verify the payment info snapshot.
-
-    Parametrized over BUTTON_CASES; ids ("vip"/"admin"/"console")
-    come from pytest.param(..., id=...) and show up in the test name
-    and Allure report.
-    """
+    """Click a payment banner and verify the payment info snapshot."""
     button_pay_page = AllButtonPayPage(login_in_page)
 
     with allure.step(f"Click {banner_method} and check payment element snapshot"):

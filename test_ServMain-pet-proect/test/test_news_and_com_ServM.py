@@ -1,31 +1,60 @@
+import re
+import pytest
 import allure
-from pages.news_page_ServM import AboutPage
+from pages.button_pay_ServM import AllButtonPayPage
 
 
-def test_about_page_news_and_review_submission(login_in_page):
-    """Verify news collection loading and review form input/button state on About Us page.
+PAYMENT_INFO_LOCATOR = '[data-testid="sandbox_paper"]'
 
-    Intentionally does not click the send button: submitted reviews cannot
-    be removed on this environment, so this only checks that the form
-    accepts input and the send button becomes interactive.
+BUTTON_CASES = [
+    pytest.param("click_banner_vip", "payment_info_vip.png", id="vip"),
+    pytest.param("click_banner_admin", "payment_info_admin.png", id="admin"),
+    pytest.param("click_banner_console", "payment_info_console.png", id="console"),
+]
+
+
+def capture_element_screenshot(page, selector):
+    page.mouse.move(0, 0)
+
+    page.add_style_tag(content="""
+        *, *::before, *::after {
+            animation: none !important;
+            transition: none !important;
+            caret-color: transparent !important;
+        }
+    """)
+    page.wait_for_timeout(500)
+
+    # Пробуємо дочекатися iframe LiqPay, а якщо його немає — шукаємо в основному DOM
+    try:
+        page.wait_for_selector("iframe[src*='liqpay.ua']", timeout=20000)
+        iframe = page.frame_locator("iframe[src*='liqpay.ua']").locator(selector).first
+        iframe.wait_for(state="visible", timeout=30000)
+        page.wait_for_timeout(300)
+        return iframe.screenshot()
+    except Exception:
+        element = page.locator(selector).first
+        element.wait_for(state="visible", timeout=30000)
+        page.wait_for_timeout(300)
+        return element.screenshot()
+
+
+@pytest.mark.parametrize("banner_method, snapshot_name", BUTTON_CASES)
+def test_button_pay(login_in_page, snapshot, banner_method, snapshot_name):
+    """Click a payment banner and verify the payment info snapshot.
+
+    Parametrized over BUTTON_CASES; ids ("vip"/"admin"/"console")
+    come from pytest.param(..., id=...) and show up in the test name
+    and Allure report.
     """
-    about_page = AboutPage(login_in_page)
+    button_pay_page = AllButtonPayPage(login_in_page)
 
-    with allure.step("Navigate to About Us page via header menu"):
-        about_page.open_from_header()
+    with allure.step(f"Click {banner_method} and check payment element snapshot"):
+        getattr(button_pay_page, banner_method)()
 
-    with allure.step("Validate news feed collection "):
-        news_count = about_page.get_news_count()
-        assert news_count > 0, f"Expected at least 1 news item, but found {news_count}"
+        login_in_page.wait_for_url(re.compile(r"liqpay\.ua"), wait_until="networkidle", timeout=60000)
 
-    with allure.step("Validate news links"):
-        first_link = about_page.get_first_news_link()
-        assert first_link.startswith("http"), f"News link should be a valid URL, got '{first_link}'"
-
-    with allure.step("Fill review form and verify send button becomes interactive"):
-        test_comment = "Great Minecraft server! High stability."
-
-        about_page.review_input.fill(test_comment)
-        assert about_page.get_review_input_value() == test_comment, "Review input value does not match entered text"
-
-        assert about_page.send_button.is_enabled(), "Send button should be enabled after filling the review form"
+        snapshot.assert_match(
+            capture_element_screenshot(login_in_page, PAYMENT_INFO_LOCATOR),
+            snapshot_name,
+        )

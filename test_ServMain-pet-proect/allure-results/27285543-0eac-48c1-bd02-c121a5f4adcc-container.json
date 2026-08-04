@@ -1,0 +1,1 @@
+{"uuid": "0ef1be75-1892-4bbf-bc5f-ec8be0673b68", "befores": [{"name": "banner_method", "status": "passed", "start": 1785776090569, "stop": 1785776090569}], "afters": [{"name": "banner_method::<lambda>", "start": 1785776093395}], "start": 1785776090569, "stop": 1785776093395}

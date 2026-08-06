@@ -25,16 +25,14 @@ def capture_element_screenshot(page, selector):
     """)
     page.wait_for_timeout(500)
 
-    # Чекаємо появи елемента в основному DOM або всередині iframe LiqPay
+    # Шукаємо елемент всередині iframe або в основному DOM із запасом часу 30 сек
     for _ in range(30):
         try:
-            # Шукаємо в iframe
             if page.locator("iframe[src*='liqpay.ua']").count() > 0:
                 frame_el = page.frame_locator("iframe[src*='liqpay.ua']").locator(selector).first
                 if frame_el.is_visible():
                     return frame_el.screenshot()
-            
-            # Шукаємо в основному DOM
+
             dom_el = page.locator(selector).first
             if dom_el.is_visible():
                 return dom_el.screenshot()
@@ -42,9 +40,8 @@ def capture_element_screenshot(page, selector):
             pass
         page.wait_for_timeout(1000)
 
-    # Фінальна спроба з явним очікуванням
     element = page.locator(selector).first
-    element.wait_for(state="visible", timeout=10000)
+    element.wait_for(state="visible", timeout=30000)
     return element.screenshot()
 
 

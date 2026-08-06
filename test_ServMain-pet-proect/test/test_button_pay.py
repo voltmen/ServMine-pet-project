@@ -25,7 +25,6 @@ def capture_element_screenshot(page, selector):
     """)
     page.wait_for_timeout(500)
 
-    # Шукаємо елемент всередині iframe або в основному DOM із запасом часу 30 сек
     for _ in range(30):
         try:
             if page.locator("iframe[src*='liqpay.ua']").count() > 0:

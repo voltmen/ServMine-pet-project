@@ -78,7 +78,7 @@ jobs:
           TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
           TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
         run: |
-          python -m pytest test_ServMain-pet-proect/ --snapshot-update --alluredir=allure-results
+          python -m pytest test_ServMain-pet-proect/ --alluredir=allure-results
 
       - name: 6.2 Print Docker Logs on Failure
         if: failure()
